@@ -1,33 +1,49 @@
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
+import os
+import re
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
 
-def fetch_gfg_article(query):
+def clean_text(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    paragraphs = soup.find_all('p')
+    return "\n".join(p.get_text().strip() for p in paragraphs if p.get_text().strip())
+
+def scrape_gfg_article(url):
     try:
-        search_url = f"https://duckduckgo.com/html/?q={urllib.parse.quote(query)}+site:geeksforgeeks.org"
-        res = requests.get(search_url, headers=HEADERS)
-        soup = BeautifulSoup(res.text, "html.parser")
-
-        links = soup.find_all("a", class_="result__a", href=True)
-        if not links:
-            return "\u26a0\ufe0f No results found."
-
-        article_url = links[0]["href"]
-        if article_url.startswith("/l/?uddg="):
-            article_url = urllib.parse.unquote(article_url.split("/l/?uddg=")[1])
-
-        article_res = requests.get(article_url, headers=HEADERS)
-        article_soup = BeautifulSoup(article_res.text, "html.parser")
-        content_div = article_soup.find("div", class_="text")
-
-        if not content_div:
-            return "\u26a0\ufe0f Couldn't extract article content."
-
-        paragraphs = content_div.find_all("p")
-        full_text = "\n\n".join(p.get_text() for p in paragraphs)
-        return full_text.strip()[:3000]
-
+        res = requests.get(url, headers=HEADERS)
+        res.raise_for_status()
+        return clean_text(res.text)
     except Exception as e:
-        return f"\u26a0\ufe0f Error fetching article: {e}"
+        print(f"[ERROR] Could not scrape {url}: {e}")
+        return ""
+
+def url_to_filename(url):
+    slug = url.rstrip("/").split("/")[-1]
+    return re.sub(r'[^a-zA-Z0-9_-]', '', slug)
+
+def save_gfg_article(url, path="data/processed_gfg"):
+    os.makedirs(path, exist_ok=True)
+    content = scrape_gfg_article(url)
+    if not content:
+        return
+    name = url_to_filename(url)
+    with open(os.path.join(path, f"{name}.txt"), "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"[✔] Saved {name}.txt")
+
+def batch_scrape(urls, path="data/processed_gfg"):
+    for url in urls:
+        save_gfg_article(url, path)
+
+# Example use:
+if __name__ == "__main__":
+    gfg_urls = [
+        "https://www.geeksforgeeks.org/binary-search/",
+        "https://www.geeksforgeeks.org/queue-data-structure/",
+        "https://www.geeksforgeeks.org/dynamic-programming/"
+    ]
+    batch_scrape(gfg_urls)

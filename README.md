@@ -1,7 +1,3 @@
-
-# DSA---chatbot
-It is my first project , In which I have experienced the chatbot building around rag based pipeline models
-=======
 # DSA RAG Chatbot
 
 This chatbot answers Data Structure questions using live content from GeeksforGeeks and OpenAI's GPT.
@@ -26,4 +22,3 @@ This chatbot answers Data Structure questions using live content from GeeksforGe
 - ✅ GPT-3.5 based responses
 - 🔜 Hybrid support for local notes (optional)
 """
->>>>>>> aa6bf8c (Initial commit: DSA RAG Chatbot with Ollama and diagrams)

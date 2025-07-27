@@ -1,18 +1,25 @@
+# core/llm_ollama.py
+
 import requests
-import json
 
-def stream_ollama_response(prompt):
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={"model": "tinyllama", "prompt": prompt, "stream": True},
-        stream=True
-    )
+# Default model
+MODEL_NAME = "mistral"
 
-    for line in response.iter_lines():
-        if line:
-            try:
-                chunk = json.loads(line.decode("utf-8"))
-                if "response" in chunk:
-                    yield chunk["response"]
-            except json.JSONDecodeError:
-                continue
+def set_model_name(name: str):
+    global MODEL_NAME
+    MODEL_NAME = name
+
+def query_local_llm(prompt: str) -> str:
+    try:
+        url = "http://localhost:11434/api/generate"
+        response = requests.post(url, json={
+            "model": MODEL_NAME,
+            "prompt": prompt,
+            "stream": False
+        })
+        if response.status_code == 200:
+            return response.json()["response"].strip()
+        else:
+            return f"[Ollama API Error] {response.text}"
+    except Exception as e:
+        return f"[System Error] {str(e)}"

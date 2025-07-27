@@ -1,9 +1,6 @@
-openai
 streamlit
+chromadb
+langchain
+sentence-transformers
 beautifulsoup4
 requests
-langchain
-langchain-community
-langchain-openai
-tiktoken
-python-dotenv

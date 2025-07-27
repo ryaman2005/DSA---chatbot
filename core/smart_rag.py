@@ -1,38 +1,30 @@
-# from core.rag_gfg import rag_from_gfg
+import os
+from core.llm_ollama import query_local_llm
+from langchain_community.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceEmbeddings
 
-# def smart_rag(query):
-#     return rag_from_gfg(query)  # Add fallback to notes later if needed
+embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-
-# # ✅ FILE: app.py
-# # Streamlit app UI
-# import streamlit as st
-# from core.smart_rag import smart_rag
-
-# st.set_page_config(page_title="DSA RAG Chatbot")
-# st.title("🤖 Ask Me Anything About DSA")
-
-# query = st.text_input("Your DSA question:")
-# if query:
-#     with st.spinner("Thinking..."):
-#         answer = smart_rag(query)
-#         st.markdown(f"**Answer:**\n\n{answer}")
-
-from core.rag_gfg import rag_from_gfg
-from core.rag_notes import rag_from_notes
-
-def smart_rag(query):
-    gfg_answer = rag_from_gfg(query)
-
-    # If the answer is a generator (streaming), collect it
-    if hasattr(gfg_answer, '__iter__') and not isinstance(gfg_answer, str):
-        gfg_answer_text = "".join(list(gfg_answer)).strip()
-        if "⚠️" in gfg_answer_text or len(gfg_answer_text) < 50:
-            print("🔁 Falling back to local notes...")
-            return rag_from_notes(query)
-        return gfg_answer_text
+def get_final_response(query: str) -> str:
+    if os.path.exists("uploaded_file_vectordb"):
+        print("📂 Using uploaded file context...")
+        vectordb = Chroma(persist_directory="uploaded_file_vectordb", embedding_function=embedding)
     else:
-        if "⚠️" in gfg_answer or len(gfg_answer.strip()) < 50:
-            print("🔁 Falling back to local notes...")
-            return rag_from_notes(query)
-        return gfg_answer
+        print("🌐 Using default vectordb...")
+        vectordb = Chroma(persist_directory="./vectordb", embedding_function=embedding)
+
+    results = vectordb.similarity_search(query, k=4)
+    context = "\n\n".join([r.page_content for r in results])
+
+    prompt = f"""You are a helpful assistant for Data Structures and Algorithms.
+Use the below context to answer the question.
+
+Context:
+{context}
+
+Question:
+{query}
+
+Answer:"""
+
+    return query_local_llm(prompt)

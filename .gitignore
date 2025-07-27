@@ -1,16 +1,30 @@
-# Python cache
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
 
-# LangChain vector DB
-db/
-
-# Model weights
-models/
-*.gguf
-
-# Environment
+# Local env
 .env
+.venv
+env/
+venv/
 
-# Other
+# macOS
 .DS_Store
+
+# VSCode
+.vscode/
+
+# Chroma DBs
+*.chroma/
+
+# Uploaded temp files
+*.pptx
+*.txt
+*.pkl
+
+# Logs
+*.log
+
+# Models (if huge or optional)
+models/

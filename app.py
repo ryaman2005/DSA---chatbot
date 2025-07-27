@@ -1,93 +1,88 @@
-# import streamlit as st
-# from core.smart_rag import smart_rag
-
-# st.set_page_config(page_title="DSA RAG Chatbot")
-# st.title("💬 BOHRA's CHATWORLD")
-
-# # Initialize chat history
-# if "history" not in st.session_state:
-#     st.session_state.history = []
-
-# # Input box
-# query = st.text_input("Ask me anything about DSA:")
-
-# # When user presses 'Send'
-# if st.button("Send"):
-#     if query:
-#         st.session_state.history.append(("You", query))
-
-#         with st.spinner("Thinking..."):
-#             response = smart_rag(query)
-
-#         # Check if the response is a generator (streaming)
-#         if hasattr(response, '__iter__') and not isinstance(response, str):
-#             output_container = st.empty()
-#             final_response = ""
-#             for token in response:
-#                 final_response += token
-#                 output_container.markdown(f"**Bot:** {final_response}")
-#             st.session_state.history.append(("Bot", final_response))
-#         else:
-#             st.markdown(f"**Bot:** {response}")
-#             st.session_state.history.append(("Bot", response))
-
-# # Display chat history
-# for speaker, msg in st.session_state.history:
-#     st.markdown(f"**{speaker}:** {msg}")
+# app.py
 import streamlit as st
-from core.smart_rag import smart_rag
-import graphviz
+import base64
+from core.smart_rag import get_final_response
 
-st.set_page_config(page_title="DSA RAG Chatbot")
-st.title("💬 BOHRA's CHATWORLD")
+st.set_page_config(page_title="DSA RAG Chatbot", layout="wide")
 
-# 🔧 Visualizer: Stack
+# ---- Custom CSS Styling ----
+st.markdown("""
+    <style>
+    body {
+        background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0f2027);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+    }
+    @keyframes gradientBG {
+        0% {background-position: 0% 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0% 50%;}
+    }
+    section[data-testid="stSidebar"] {
+        background: rgba(30, 30, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid #444;
+    }
+    .chat-title {
+        font-size: 3rem;
+        font-weight: 900;
+        color: white;
+        text-shadow: 0 0 20px #00f0ff;
+        animation: pulseText 3s infinite;
+    }
+    @keyframes pulseText {
+        0% { text-shadow: 0 0 5px #00f0ff; }
+        50% { text-shadow: 0 0 25px #00f0ff; }
+        100% { text-shadow: 0 0 5px #00f0ff; }
+    }
+    .stTextInput > div > div > input {
+        background-color: #111 !important;
+        color: #fff !important;
+        border: 1px solid #444;
+        border-radius: 8px;
+    }
+    .stMarkdown {
+        font-family: 'Fira Code', monospace;
+        color: #ddd;
+        font-size: 1.1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-def render_stack(items):
-    g = graphviz.Digraph()
-    g.attr(rankdir="TB")  # Top to Bottom
+st.markdown("<div class='chat-title'>DSA RAG Chatbot</div>", unsafe_allow_html=True)
 
-    for i, val in enumerate(reversed(items)):
-        label = f"{val} (Top)" if i == 0 else str(val)
-        g.node(f"{i}", label, shape="box")
+# Sidebar Markdown Editor
+st.sidebar.title("📝 Notes")
+show_editor = st.sidebar.checkbox("Show Markdown Editor")
 
-        if i > 0:
-            g.edge(f"{i}", f"{i - 1}")
+if show_editor:
+    editor_content = st.text_area("Write your DSA notes here:", height=200)
+    if st.button("💾 Export Notes"):
+        b64 = base64.b64encode(editor_content.encode()).decode()
+        href = f'<a href="data:file/txt;base64,{b64}" download="dsa_notes.md">📥 Download Markdown</a>'
+        st.markdown(href, unsafe_allow_html=True)
 
-    return g
+# Main Chat Section
+query = st.text_input("Ask a question about DSA:")
 
-# Initialize chat history
-if "history" not in st.session_state:
-    st.session_state.history = []
+if query:
+    with st.spinner("🔍 Thinking..."):
+        response = get_final_response(query)
 
-# Input box
-query = st.text_input("Ask me anything about DSA:")
-
-# When user presses 'Send'
-if st.button("Send"):
-    if query:
-        st.session_state.history.append(("You", query))
-
-        with st.spinner("Thinking..."):
-            response = smart_rag(query)
-
-        # Check if streaming response
-        if hasattr(response, '__iter__') and not isinstance(response, str):
-            output_container = st.empty()
-            full_response = ""
-            for token in response:
-                full_response += token
-                output_container.markdown(f"**Bot:** {full_response}")
-            st.session_state.history.append(("Bot", full_response))
-        else:
-            st.markdown(f"**Bot:** {response}")
-            st.session_state.history.append(("Bot", response))
-
-        # 📊 Show Stack diagram if relevant
-        if "stack" in query.lower():
-            st.subheader("📊 Visual Representation of Stack")
-            st.graphviz_chart(render_stack(["40", "30", "20", "10"]))
-
-# Display chat history
-for speaker, msg in st.session_state.history:
-    st.markdown(f"**{speaker}:** {msg}")
+    st.markdown("### 💡 Response:")
+    if "```" in response:
+        lines = response.split("\n")
+        in_code_block = False
+        code_lines = []
+        for line in lines:
+            if line.strip().startswith("```"):
+                if in_code_block:
+                    st.code("\n".join(code_lines), language="python")
+                    code_lines = []
+                in_code_block = not in_code_block
+            elif in_code_block:
+                code_lines.append(line)
+            else:
+                st.markdown(line)
+    else:
+        st.markdown(response)

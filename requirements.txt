@@ -9,3 +9,4 @@ tiktoken
 huggingface_hub
 requests
 ollama
+faiss-cpu 

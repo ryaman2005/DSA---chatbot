@@ -8,10 +8,10 @@ embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 def get_final_response(query: str) -> str:
     if os.path.exists("uploaded_file_vectordb/index.faiss"):
         print("📂 Using uploaded file context...")
-        vectordb = FAISS.load_local("uploaded_file_vectordb", embedding_function=embedding)
+        vectordb = FAISS.load_local("uploaded_file_vectordb", embedding, allow_dangerous_deserialization=True)
     else:
         print("🌐 Using default vectordb...")
-        vectordb = FAISS.load_local("vectordb", embedding_function=embedding)
+        vectordb = FAISS.load_local("vectordb", embedding, allow_dangerous_deserialization=True)
 
     results = vectordb.similarity_search(query, k=4)
     context = "\n\n".join([r.page_content for r in results])

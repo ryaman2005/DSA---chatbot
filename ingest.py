@@ -1,6 +1,6 @@
 import os
 import shutil
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from pptx import Presentation
@@ -43,10 +43,10 @@ def ingest_file(file_path):
     splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=100)
     docs = splitter.create_documents([text])
 
-    # Generate embeddings and build vector store
+    # Generate embeddings and build FAISS vector store
     embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    vectordb = Chroma.from_documents(docs, embedding, persist_directory=UPLOAD_DIR)
-    vectordb.persist()
+    vectordb = FAISS.from_documents(docs, embedding)
+    vectordb.save_local(UPLOAD_DIR)
 
     # Save context path
     with open(UPLOAD_CONTEXT_PATH, "w") as f:
